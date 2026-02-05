@@ -32,15 +32,13 @@
       margin: 0 0 30px;
       font-size: 30px;
       color: #ff4d6d;
-      line-height: 1.15;
     }
 
     .buttons {
       display: flex;
-      gap: 20px;
       justify-content: center;
       position: relative;
-      height: 52px; /* keeps space stable when No moves */
+      height: 52px;
     }
 
     button {
@@ -49,14 +47,14 @@
       border-radius: 12px;
       border: none;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease;
       user-select: none;
     }
 
     #yes {
       background: #ff4d6d;
       color: white;
-      position: relative;
+      margin-right: 20px;
     }
 
     #yes:hover {
@@ -69,7 +67,6 @@
       position: absolute;
       left: 55%;
       top: 0;
-      transition: transform 0.25s ease-out; /* smoother movement */
     }
 
     .message {
@@ -80,64 +77,110 @@
       font-weight: bold;
     }
 
-    /* Muffin pop-up */
     .muffin-wrap {
       display: none;
       margin-top: 16px;
       animation: floatIn 0.5s ease-out;
     }
+
     .muffin {
       font-size: 88px;
-      line-height: 1;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,0.2));
     }
+
     .muffin-caption {
       margin-top: 8px;
       color: #ff4d6d;
       font-weight: 700;
     }
+
     @keyframes floatIn {
       0% { transform: translateY(10px) scale(0.95); opacity: 0; }
       100% { transform: translateY(0) scale(1); opacity: 1; }
     }
 
-    /* Confetti canvas */
-    #confetti{
+    #confetti {
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
       pointer-events: none;
       z-index: 999;
     }
 
-    /* Pop animation */
     .pop {
       animation: pop 0.35s ease-out;
     }
+
     @keyframes pop {
       0% { transform: scale(1); }
       50% { transform: scale(1.12); }
       100% { transform: scale(1); }
+    }
+
+    /* 🐢 Turtle Popup */
+    #turtle-popup {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      background: rgba(255,255,255,0.95);
+      border: 3px solid #4caf50;
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: none;
+      z-index: 10000;
+      animation: bounce 1s infinite;
+    }
+
+    #turtle-popup.show {
+      display: block;
+    }
+
+    .bubble {
+      background: #e8ffe8;
+      border: 2px solid #4caf50;
+      border-radius: 14px;
+      padding: 10px;
+      font-weight: 800;
+      color: #1f7a2e;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .turtle {
+      font-size: 34px;
+      animation: shake 0.25s infinite;
+    }
+
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes shake {
+      0%,100% { transform: rotate(0); }
+      50% { transform: rotate(-6deg); }
     }
   </style>
 </head>
 
 <body>
   <div class="card">
-    <h1>Morgan, please will you be my Valentine? 💘</h1>
+    <h1>Morgan, will you be my Valentine? 💘</h1>
 
     <div class="buttons">
       <button id="yes">Yes 💖</button>
       <button id="no">No 😬</button>
     </div>
 
-    <div class="message" id="message">YAYYY 💕</div>
+    <div class="message" id="message">YAYYY 💕 Best decision ever 😘</div>
 
-    <div class="muffin-wrap" id="muffinWrap" aria-live="polite">
-      <div class="muffin" aria-label="muffin">🧁</div>
+    <div class="muffin-wrap" id="muffinWrap">
+      <div class="muffin">🧁</div>
       <div class="muffin-caption">A muffin for my Valentine 😘</div>
     </div>
+  </div>
+
+  <div id="turtle-popup">
+    <div class="bubble">MORGAN<br>I LOVE YOU!!!</div>
+    <div class="turtle">🐢</div>
   </div>
 
   <canvas id="confetti"></canvas>
@@ -147,136 +190,82 @@
     const yesBtn = document.getElementById("yes");
     const message = document.getElementById("message");
     const muffinWrap = document.getElementById("muffinWrap");
+    const turtlePopup = document.getElementById("turtle-popup");
 
-    // ---- Smooth "No" movement ----
-    let noX = 0;
-    let noY = 0;
+    // 🧲 Drifting "No" button
+    let noX = 0, noY = 0;
+    let velX = 0, velY = 0;
 
     document.addEventListener("mousemove", (e) => {
       const rect = noBtn.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
 
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const radius = 160;
 
-      if (distance < 130) {
-        const step = 18;
-        noX += (-dx / distance) * step;
-        noY += (-dy / distance) * step;
-
-        noX = Math.max(-180, Math.min(180, noX));
-        noY = Math.max(-120, Math.min(120, noY));
-
-        noBtn.style.transform = `translate(${noX}px, ${noY}px)`;
+      if (dist < radius) {
+        const force = (radius - dist) / radius;
+        velX += (-dx / dist) * force * 2.4;
+        velY += (-dy / dist) * force * 2.4;
       }
     });
 
-    // ---- Confetti (no libraries) ----
+    function driftNo() {
+      velX *= 0.92;
+      velY *= 0.92;
+      noX += velX;
+      noY += velY;
+
+      noX = Math.max(-200, Math.min(200, noX));
+      noY = Math.max(-140, Math.min(140, noY));
+
+      noBtn.style.transform = `translate(${noX}px, ${noY}px)`;
+      requestAnimationFrame(driftNo);
+    }
+    driftNo();
+
+    // 🎉 Confetti
     const canvas = document.getElementById("confetti");
     const ctx = canvas.getContext("2d");
-    let confettiPieces = [];
-    let confettiOn = false;
-    let confettiEndTime = 0;
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth * devicePixelRatio;
-      canvas.height = window.innerHeight * devicePixelRatio;
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+    let pieces = [];
 
-    function spawnConfetti(count = 180) {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const colors = ["#ff4d6d", "#7c5cff", "#2ee59d", "#ffd166", "#4cc9f0", "#f72585"];
-
-      confettiPieces = Array.from({ length: count }, () => ({
-        x: Math.random() * w,
-        y: -20 - Math.random() * h * 0.3,
-        w: 6 + Math.random() * 8,
-        h: 8 + Math.random() * 12,
-        vx: -2 + Math.random() * 4,
-        vy: 3 + Math.random() * 6,
-        rot: Math.random() * Math.PI,
-        vr: -0.2 + Math.random() * 0.4,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        shape: Math.random() < 0.25 ? "circle" : "rect"
+    function spawnConfetti() {
+      pieces = Array.from({length: 180}, () => ({
+        x: Math.random() * innerWidth,
+        y: Math.random() * -innerHeight,
+        r: Math.random() * 6 + 4,
+        vy: Math.random() * 4 + 3,
+        color: `hsl(${Math.random()*360},100%,60%)`
       }));
     }
 
-    function drawPiece(p) {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-
-      if (p.shape === "circle") {
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.min(p.w, p.h) / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      }
-      ctx.restore();
-    }
-
-    function stepConfetti() {
-      if (!confettiOn) return;
-
-      const now = Date.now();
-      const h = window.innerHeight;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (const p of confettiPieces) {
-        p.x += p.vx;
+    function animateConfetti() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      pieces.forEach(p => {
         p.y += p.vy;
-        p.rot += p.vr;
-
-        p.vx *= 0.995;
-        p.vy *= 0.995;
-
-        if (p.y > h + 40) {
-          p.y = -20;
-          p.x = Math.random() * window.innerWidth;
-          p.vy = 3 + Math.random() * 6;
-          p.vx = -2 + Math.random() * 4;
-        }
-        drawPiece(p);
-      }
-
-      if (now > confettiEndTime) {
-        confettiOn = false;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-      }
-
-      requestAnimationFrame(stepConfetti);
+        if (p.y > innerHeight) p.y = -20;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fill();
+      });
+      requestAnimationFrame(animateConfetti);
     }
 
-    function startConfetti(ms = 3000) {
-      spawnConfetti(190);
-      confettiOn = true;
-      confettiEndTime = Date.now() + ms;
-      requestAnimationFrame(stepConfetti);
-    }
-
-    // ---- YES button: confetti + pop + message + muffin ----
+    // ❤️ YES button
     yesBtn.addEventListener("click", () => {
-      message.textContent = "YAYYY 💕 Best decision ever 😘";
       message.style.display = "block";
-
-      const card = document.querySelector(".card");
-      card.classList.remove("pop");
-      void card.offsetWidth;
-      card.classList.add("pop");
-
       muffinWrap.style.display = "block";
+      turtlePopup.classList.add("show");
 
-      startConfetti(3200);
+      spawnConfetti();
+      animateConfetti();
 
       yesBtn.style.display = "none";
       noBtn.style.display = "none";
